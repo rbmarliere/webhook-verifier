@@ -18,31 +18,34 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 		log.Println("Secret not found")
 		return
 	}
+	log.Println("Found Secret: " + secret)
 
 	project_root := r.Header.Get("Project-Root")
 	if project_root == "" {
 		log.Println("Project-Root not found")
 		return
 	}
+	log.Println("Found Project-Root: " + project_root)
 
-	signature := r.Header.Get("X-Hub-Signature-256")
-	if signature == "" {
+	expected_signature := r.Header.Get("X-Hub-Signature-256")
+	if expected_signature == "" {
 		log.Println("X-Hub-Signature-256 not found")
 		return
 	}
-	log.Println(signature)
+	log.Println("Found X-Hub-Signature-256: " + expected_signature)
 
 	payload, error := io.ReadAll(r.Body)
-	if error != nil {
+	if payload == nil || error != nil {
+		log.Println("Payload not found")
 		return
 	}
 
 	digest := hmac.New(sha256.New, []byte(secret))
 	digest.Write(payload)
-	expected := fmt.Sprintf("sha256=%x", digest.Sum(nil))
-	log.Println(expected)
+	signature := fmt.Sprintf("sha256=%x", digest.Sum(nil))
+	log.Println("Signature: " + expected_signature)
 
-	if expected != signature {
+	if signature != expected_signature {
 		log.Println("Signatures do not match")
 		return
 	}
@@ -51,11 +54,11 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 	var out strings.Builder
 	cmd.Stdout = &out
 	cmd.Stderr = &out
-	err := cmd.Run()
-	log.Println(out.String())
-	if err != nil {
-		log.Println(err)
+	error = cmd.Run()
+	if error != nil {
+		log.Println(error)
 	}
+	log.Println(out.String())
 }
 
 func main() {
