@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"os/exec"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -25,7 +26,13 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 		log.Println("Project-Root not found")
 		return
 	}
+
 	log.Println("Found Project-Root: " + project_root)
+	_, error := os.Stat(project_root)
+	if error != nil {
+		log.Println("Project-Root path does not exist")
+		return
+	}
 
 	expected_signature := r.Header.Get("X-Hub-Signature-256")
 	if expected_signature == "" {
