@@ -26,38 +26,52 @@ func (l *custom_logger) Println(v ...interface{}) {
 
 var logger = &custom_logger{false, log.New(os.Stdout, "", 0)}
 
-func parseHeaders(w http.ResponseWriter, r *http.Request) {
+func parseHeaders(r *http.Request) ([]string, error) {
+	var msg string
+
 	secret := r.Header.Get("Secret")
 	if secret == "" {
-		logger.Println("Secret not found")
-		return
+		msg = "Secret not found"
+		logger.Println(msg)
+		return nil, fmt.Errorf(msg)
 	}
 	logger.Println("Found Secret: " + secret)
 
 	project_root := r.Header.Get("Project-Root")
 	if project_root == "" {
-		logger.Println("Project-Root not found")
-		return
+		msg = "Project-Root not found"
+		logger.Println(msg)
+		return nil, fmt.Errorf(msg)
 	}
-
 	logger.Println("Found Project-Root: " + project_root)
-	_, error := os.Stat(project_root)
-	if error != nil {
-		logger.Println("Project-Root path does not exist")
-		return
-	}
 
 	expected_signature := r.Header.Get("X-Hub-Signature-256")
 	if expected_signature == "" {
-		logger.Println("X-Hub-Signature-256 not found")
-		return
+		msg = "X-Hub-Signature-256 not found"
+		logger.Println(msg)
+		return nil, fmt.Errorf(msg)
 	}
 	logger.Println("Found X-Hub-Signature-256: " + expected_signature)
 
+	return []string{secret, project_root, expected_signature}, nil
+}
+
+func parseBody(r *http.Request) ([]byte, error) {
 	payload, error := io.ReadAll(r.Body)
 	if payload == nil || error != nil {
-		logger.Println("Payload not found")
-		return
+		msg := "Payload not found"
+		logger.Println(msg)
+		return nil, fmt.Errorf(msg)
+	}
+
+	return payload, nil
+}
+
+func verifySignature(secret, project_root, expected_signature string, payload []byte) bool {
+	_, error := os.Stat(project_root)
+	if error != nil {
+		logger.Println("Project-Root path does not exist")
+		return false
 	}
 
 	digest := hmac.New(sha256.New, []byte(secret))
@@ -67,18 +81,43 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 
 	if signature != expected_signature {
 		logger.Println("Signatures do not match")
-		return
+		return false
 	}
 
+	return true
+}
+
+func updateProject(project_root string) {
 	cmd := exec.Command("git", "-C", project_root, "pull")
 	var out strings.Builder
 	cmd.Stdout = &out
 	cmd.Stderr = &out
-	error = cmd.Run()
+	error := cmd.Run()
+	logger.Println(out.String())
 	if error != nil {
 		logger.Println(error)
 	}
-	logger.Println(out.String())
+}
+
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+	headers, error := parseHeaders(r)
+	if error != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	payload, error := parseBody(r)
+	if error != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if verifySignature(headers[0], headers[1], headers[2], payload) {
+		updateProject(headers[1])
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+	}
 }
 
 func main() {
@@ -88,6 +127,6 @@ func main() {
 
 	logger.verbose = *verbose
 
-	http.HandleFunc("/", parseHeaders)
+	http.HandleFunc("/", handleRequest)
 	http.ListenAndServe(":" + *port, nil)
 }
