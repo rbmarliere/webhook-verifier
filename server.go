@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"flag"
 )
 
 func parseHeaders(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +59,9 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	port := flag.String("port", "32777", "port to listen on")
+	flag.Parse()
+
 	http.HandleFunc("/", parseHeaders)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":" + *port, nil)
 }
