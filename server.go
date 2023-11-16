@@ -1,17 +1,17 @@
 package main
 
 import (
-	"log"
-	"os"
-	"os/exec"
 	"crypto/hmac"
 	"crypto/sha256"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
+	"os/exec"
 	"strings"
-	"flag"
 )
 
 type custom_logger struct {
@@ -134,5 +134,5 @@ func main() {
 	logger.verbose = *verbose
 
 	http.HandleFunc("/", handleRequest)
-	http.ListenAndServe(":" + *port, nil)
+	http.ListenAndServe(":"+*port, nil)
 }
