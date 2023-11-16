@@ -26,7 +26,7 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 	if signature == "" {
 		log.Fatal("X-Hub-Signature-256 not found")
 	}
-	fmt.Println(signature)
+	log.Println(signature)
 
 	payload, error := io.ReadAll(r.Body)
 	if error != nil {
@@ -36,7 +36,8 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 	digest := hmac.New(sha256.New, []byte(secret))
 	digest.Write(payload)
 	expected := fmt.Sprintf("sha256=%x", digest.Sum(nil))
-	fmt.Println(expected)
+	log.Println(expected)
+
 	if expected != signature {
 		log.Fatal("Signatures do not match")
 	}
@@ -46,7 +47,7 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 	err := cmd.Run()
-	fmt.Println(out.String())
+	log.Println(out.String())
 	if err != nil {
 		log.Fatal(err)
 	}
