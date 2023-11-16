@@ -14,17 +14,17 @@ import (
 func parseHeaders(w http.ResponseWriter, r *http.Request) {
 	secret := r.Header.Get("Secret")
 	if secret == "" {
-		log.Fatal("Secret not found")
+		log.Println("Secret not found")
 	}
 
 	project_root := r.Header.Get("Project-Root")
 	if project_root == "" {
-		log.Fatal("Project-Root not found")
+		log.Println("Project-Root not found")
 	}
 
 	signature := r.Header.Get("X-Hub-Signature-256")
 	if signature == "" {
-		log.Fatal("X-Hub-Signature-256 not found")
+		log.Println("X-Hub-Signature-256 not found")
 	}
 	log.Println(signature)
 
@@ -39,7 +39,7 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 	log.Println(expected)
 
 	if expected != signature {
-		log.Fatal("Signatures do not match")
+		log.Println("Signatures do not match")
 	}
 
 	cmd := exec.Command("git", "-C", project_root, "pull")
@@ -49,7 +49,7 @@ func parseHeaders(w http.ResponseWriter, r *http.Request) {
 	err := cmd.Run()
 	log.Println(out.String())
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 }
 
