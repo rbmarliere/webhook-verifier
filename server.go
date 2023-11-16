@@ -67,13 +67,7 @@ func parseBody(r *http.Request) ([]byte, error) {
 	return payload, nil
 }
 
-func verifySignature(secret, project_root, expected_signature string, payload []byte) bool {
-	_, error := os.Stat(project_root)
-	if error != nil {
-		logger.Println("Project-Root path does not exist")
-		return false
-	}
-
+func verifySignature(secret string, expected_signature string, payload []byte) bool {
 	digest := hmac.New(sha256.New, []byte(secret))
 	digest.Write(payload)
 	signature := fmt.Sprintf("sha256=%x", digest.Sum(nil))
@@ -106,14 +100,25 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	secret := headers[0]
+	project_root := headers[1]
+	expected_signature := headers[2]
+
+	_, error = os.Stat(project_root)
+	if error != nil {
+		logger.Println("Project-Root path does not exist")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	payload, error := parseBody(r)
 	if error != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if verifySignature(headers[0], headers[1], headers[2], payload) {
-		updateProject(headers[1])
+	if verifySignature(secret, expected_signature, payload) {
+		updateProject(project_root)
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
