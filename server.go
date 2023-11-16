@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"crypto/hmac"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,7 +34,7 @@ func parseHeaders(r *http.Request) ([]string, error) {
 	if secret == "" {
 		msg = "Secret not found"
 		logger.Println(msg)
-		return nil, fmt.Errorf(msg)
+		return nil, errors.New(msg)
 	}
 	logger.Println("Found Secret: " + secret)
 
@@ -41,7 +42,7 @@ func parseHeaders(r *http.Request) ([]string, error) {
 	if project_root == "" {
 		msg = "Project-Root not found"
 		logger.Println(msg)
-		return nil, fmt.Errorf(msg)
+		return nil, errors.New(msg)
 	}
 	logger.Println("Found Project-Root: " + project_root)
 
@@ -49,7 +50,7 @@ func parseHeaders(r *http.Request) ([]string, error) {
 	if expected_signature == "" {
 		msg = "X-Hub-Signature-256 not found"
 		logger.Println(msg)
-		return nil, fmt.Errorf(msg)
+		return nil, errors.New(msg)
 	}
 	logger.Println("Found X-Hub-Signature-256: " + expected_signature)
 
@@ -61,7 +62,7 @@ func parseBody(r *http.Request) ([]byte, error) {
 	if payload == nil || error != nil {
 		msg := "Payload not found"
 		logger.Println(msg)
-		return nil, fmt.Errorf(msg)
+		return nil, errors.New(msg)
 	}
 
 	return payload, nil
