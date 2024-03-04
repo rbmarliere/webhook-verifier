@@ -84,8 +84,7 @@ func verifySignature(secret string, expected_signature string, payload []byte) b
 	return true
 }
 
-func updateProject(project_root string) {
-	cmd := exec.Command("git", "-C", project_root, "pull")
+func runCmd(cmd *exec.Cmd) strings.Builder {
 	var out strings.Builder
 	cmd.Stdout = &out
 	cmd.Stderr = &out
@@ -94,6 +93,16 @@ func updateProject(project_root string) {
 	if error != nil {
 		logger.Println(error)
 	}
+	return out
+}
+
+func updateProject(project_root string) {
+	cmd := exec.Command("git", "-C", project_root, "remote", "update")
+	runCmd(cmd)
+	cmd = exec.Command("git", "-C", project_root, "rev-parse", "--abbrev-ref", "@{u}")
+	remote := runCmd(cmd)
+	cmd = exec.Command("git", "-C", project_root, "reset", "--hard", remote.String()[:len(remote.String())-1])
+	runCmd(cmd)
 }
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
